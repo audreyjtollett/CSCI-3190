@@ -17,6 +17,6 @@ const days_per_year = 365.24
 
 # account for energy 
 
-# planets - jupiter - saturn - uranis - neptune 
+# planets - jupiter - saturn - uranus - neptune 
 
 # dont forget to end module 
