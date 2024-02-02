@@ -1,13 +1,12 @@
 module nbody 
 
-
 using Printf
 
-# Constants
+# Constants - include solar mass ? 
 const solar_mass = 4 * pi * pi
 const days_per_year = 365.24
 
-# construct body 
+# construct body - need mutable struct 
 
 # account for momentum 
 
