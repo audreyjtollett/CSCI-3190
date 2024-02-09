@@ -6,7 +6,16 @@ using Printf
 const solar_mass = 4 * pi * pi
 const days_per_year = 365.24
 
-# construct body - need mutable struct 
+# construct body - need mutable struct -> do we want mutable?
+mutable struct body
+    x::Float64
+    y::Float64
+    z::Float64
+    vx::Float64
+    vy::Float64
+    vz::Float64
+    m::Float64
+end
 
 # account for momentum 
 
