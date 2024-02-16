@@ -1,10 +1,10 @@
-module nbody 
+module nbodymut
 
 using Printf
 
 # Constants - include solar mass ? 
-const solar_mass = 4 * pi * pi
-const days_per_year = 365.24
+const SOLAR_MASS = 4 * pi * pi
+const DAYS_PER_YEAR = 365.24
 const n = 50000000 #n bodies but hard coded xd
 
 # construct body - need mutable struct -> do we want mutable?
@@ -19,20 +19,20 @@ mutable struct Body
 end
 
 # account for momentum 
-function offsetMomentum!(s::Body, bodies::Body[])
+function offsetMomentum!(s, bodies)
     px = py = pz = 0.0
     for b in bodies
         px -= b.vx * b.m
         py -= b.vy * b.m
         pz -= b.vz * b.m
     end
-    s.vx = px / solar_mass
-    s.vy = py / solar_mass
-    s.vz = pz / solar_mass
+    s.vx = px / SOLAR_MASS
+    s.vy = py / SOLAR_MASS
+    s.vz = pz / SOLAR_MASS
 end
 
 # kicks 
-function advance!(bodies::Body[], dt)
+function advance!(bodies, dt)
     for i=1:length(bodies)-1
         bodi = bodies[i]
         for j=i+1:length(bodies)-1
@@ -69,7 +69,7 @@ function energy(bodies)
         e += 0.5 * bodi.m * (bodi.vx^2 + bodi.vy^2 + bodi.vz^2)
         for j=i+1:length(bodies)
             bodj = bodies[j]
-            d = sqrt(((bodi.x-bodj.x)^2+(bodi.y-boj.y)^2+(bodi.z-bodj.z)^2))
+            d = sqrt(((bodi.x-bodj.x)^2+(bodi.y-bodj.y)^2+(bodi.z-bodj.z)^2))
             e -= bodi.m * bodies[j].m / d
         end
     end
@@ -78,7 +78,7 @@ end
 
 # planets sun - jupiter - saturn - uranus - neptune 
 function nbody(n)
-    sun = Body(0,0,0,0,0,0, solar_mass)
+    sun = Body(0,0,0,0,0,0, SOLAR_MASS)
 
     jupiter = Body( 4.84143144246472090e+0,                   # x
                    -1.16032004402742839e+0,                   # y
@@ -113,12 +113,15 @@ function nbody(n)
                     5.15138902046611451e-5 * SOLAR_MASS)
 
     bods = [jupiter, saturn, uranus, neptune]
-    sun = offsetMomentum(sun, bods)
+    offsetMomentum!(sun, bods)
     pushfirst!(bods, sun)
 
     #do advancing stuff
+    @printf("%.9f\n", energy(bods))
     for i = 1:n
         advance!(bods, 0.01)
     end
+    @printf("%.9f\n", energy(bods))
+end
 
 end
