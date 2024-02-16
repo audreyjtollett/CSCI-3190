@@ -124,4 +124,8 @@ function nbody(n)
     @printf("%.9f\n", energy(bods))
 end
 
+if !isinteractive()
+    nbody(parse(Int, ARGS[1]))
+end
+
 end
