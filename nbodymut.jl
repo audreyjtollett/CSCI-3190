@@ -33,7 +33,48 @@ end
 
 # kicks 
 function advance!(bodies::Body[], dt)
-    for elem in bodies
+    for i=1:length(bodies)-1
+        bodi = bodies[i]
+        for j=i+1:length(bodies)-1
+            bodj = bodies[j]
+            dx = bodi.x - bodj.x
+            dy = bodi.y - bodj.y
+            dz = bodi.z - bodj.z
+
+            dsq = dx^2 + dy^2 + dz^2
+            mag = dt / (dsq*sqrt(dsq))
+
+            bodi.vx -= dx * bodj.m * mag
+            bodi.vy -= dy * bodj.m * mag
+            bodi.vz -= dz * bodj.m * mag
+
+            bodj.vx += dx * bodi.m * mag
+            bodj.vy += dy * bodi.m * mag
+            bodj.vz += dz * bodi.m * mag
+        end
+    end
+    for i=1:length(bodies)-1
+        bodi = bodies[i]
+        bodi.x += dt * bodi.vx
+        bodi.y += dt * bodi.vy
+        bodi.z += dt * bodi.vz
+    end
+end
+
+# energy
+function energy(bodies)
+    e = 0.0
+    for i=1:length(bodies)
+        bodi = bodies[i]
+        e += 0.5 * bodi.m * (bodi.vx^2 + bodi.vy^2 + bodi.vz^2)
+        for j=i+1:length(bodies)
+            bodj = bodies[j]
+            d = sqrt(((bodi.x-bodj.x)^2+(bodi.y-boj.y)^2+(bodi.z-bodj.z)^2))
+            e -= bodi.m * bodies[j].m / d
+        end
+    end
+    e
+end
 
 # planets sun - jupiter - saturn - uranus - neptune 
 function nbody(n)
@@ -76,7 +117,8 @@ function nbody(n)
     pushfirst!(bods, sun)
 
     #do advancing stuff
+    for i = 1:n
+        advance!(bods, 0.01)
+    end
 
 end
-
-# dont forget to end module 
