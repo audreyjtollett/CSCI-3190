@@ -2,6 +2,7 @@ module nbodyimut
 
 using Printf
 
+#Imut should be done and its running about 17s on my mac 
 # Constants
 const SOLAR_MASS = 4 * pi * pi
 const DAYS_PER_YEAR = 365.24
