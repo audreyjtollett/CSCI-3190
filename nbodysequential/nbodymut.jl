@@ -96,7 +96,7 @@ function circular_orbits(n)
 end
 
 # planets sun - jupiter - saturn - uranus - neptune 
-function nbody(n)
+function nbody(steps, numBodies)
     sun = Body(0,0,0,0,0,0, SOLAR_MASS)
 
     jupiter = Body( 4.84143144246472090e+0,                   # x
@@ -131,21 +131,21 @@ function nbody(n)
                    -9.51592254519715870e-5 * DAYS_PER_YEAR,
                     5.15138902046611451e-5 * SOLAR_MASS)
 
-    bods = [jupiter, saturn, uranus, neptune]
-    bods = circular_orbits(10000)
-    offsetMomentum!(sun, bods)
+    #bods = [jupiter, saturn, uranus, neptune]
+    bods = circular_orbits(numBodies)
+    #offsetMomentum!(sun, bods)
     # pushfirst!(bods, sun)
 
     # do advancing stuff
     @printf("%.9f\n", energy(bods))
-    for i = 1:n
+    for i = 1:steps
         advance!(bods, 0.01)
     end
     @printf("%.9f\n", energy(bods))
 end
 
 if !isinteractive()
-    nbody(parse(Int, ARGS[1]))
+    nbody(parse(Int, ARGS[1]), parse(Int, ARGS[2]))
 end
 
 
