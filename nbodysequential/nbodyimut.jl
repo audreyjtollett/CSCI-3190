@@ -34,7 +34,8 @@ function calculate_acceleration(body1, body2)
     # calcs dis squared
     dsq = dx^2 + dy^2 + dz^2
     # calc mag of grav 
-    mag = (SOLAR_MASS / dsq^1.5) * body2.m
+    mag = (SOLAR_MASS / dsq^1.5) #* body2.m
+
     # calc acc components 
     ax = -dx * mag
     ay = -dy * mag
@@ -43,14 +44,19 @@ function calculate_acceleration(body1, body2)
 end
 
 # Update velocity and position based on acc and time step 
-function update(body::Body, ax, ay, az, dt)
+function update_val(body::Body, ax, ay, az, dt)
     vx_new = body.vx + ax * dt
     vy_new = body.vy + ay * dt
     vz_new = body.vz + az * dt
-    x_new = body.x + vx_new * dt
-    y_new = body.y + vy_new * dt
-    z_new = body.z + vz_new * dt
-    Body(x_new, y_new, z_new, vx_new, vy_new, vz_new, body.m)
+    Body(body.x, body.y, body.z, vx_new, vy_new, vz_new, body.m)
+end
+
+#Update  and position based on acc and time step 
+function update_pos(body::Body, dt)
+    x_new = body.x + body.vx * dt
+    y_new = body.y + body.vy * dt
+    z_new = body.z + body.vz * dt
+    Body(x_new, y_new, z_new, body.vx, body.vy, body.vz, body.m)
 end
 
 function energy(bodies)
@@ -131,16 +137,17 @@ function nbody(steps, numBodies)
     for i in 1:steps
         # iterate over bodies and calculate the acceleration
         for j in 1:length(bodies)
-            ax, ay, az = 0.0, 0.0, 0.0
             # calculate acceleration due to gravity from other bodies 
             for k in (j+1):length(bodies)  # Only calculate acceleration with bodies that haven't been processed yet
-                ax_temp, ay_temp, az_temp = calculate_acceleration(bodies[j], bodies[k])
-                ax += ax_temp
-                ay += ay_temp
-                az += az_temp
+                ax, ay, az = calculate_acceleration(bodies[j], bodies[k])
+                bodies[j] = update_val(bodies[j], bodies[k].m * ax,bodies[k].m * ay, bodies[k].m * az, 0.01)
+                bodies[k] = update_val(bodies[k], -bodies[j].m * ax, -bodies[j].m * ay, -bodies[j].m * az, 0.01)
             end
             # update velocity and position of body 
-            bodies[j] = update(bodies[j], ax, ay, az, 0.01)
+
+        end
+        for j in 1:length(bodies)
+            bodies[j] = update_pos(bodies[j],  0.01)
         end
     end
     @printf("%.9f\n", energy(bodies))
