@@ -126,11 +126,12 @@ function nbody(steps, numBodies)
     bodies = circular_orbits(numBodies)
 
     @printf("%.9f\n", energy(bodies))
-
+    
     # main sim loop 
     for i in 1:steps
         # itter over body and calc the acc # this is what you should make parallel 
-        for j in 1:length(bodies)
+        #println(Threads.nthreads())
+        Threads.@threads for j in 1:length(bodies) 
             ax, ay, az = 0.0, 0.0, 0.0
             # calc acc due to grav from other bodies 
             for k in 1:length(bodies)

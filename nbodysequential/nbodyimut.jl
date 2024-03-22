@@ -127,22 +127,20 @@ function nbody(steps, numBodies)
 
     @printf("%.9f\n", energy(bodies))
 
-    # main sim loop 
+    # main simulation loop 
     for i in 1:steps
-        # itter over body and calc the acc # this is what you should make parallel 
+        # iterate over bodies and calculate the acceleration
         for j in 1:length(bodies)
             ax, ay, az = 0.0, 0.0, 0.0
-            # calc acc due to grav from other bodies 
-            for k in 1:length(bodies)
-                if j != k
-                    ax_temp, ay_temp, az_temp = calculate_acceleration(bodies[j], bodies[k])
-                    ax += ax_temp
-                    ay += ay_temp
-                    az += az_temp
-                end
+            # calculate acceleration due to gravity from other bodies 
+            for k in (j+1):length(bodies)  # Only calculate acceleration with bodies that haven't been processed yet
+                ax_temp, ay_temp, az_temp = calculate_acceleration(bodies[j], bodies[k])
+                ax += ax_temp
+                ay += ay_temp
+                az += az_temp
             end
-            # update veloc and pos of body 
-            update(bodies[j], ax, ay, az, 0.01)
+            # update velocity and position of body 
+            bodies[j] = update(bodies[j], ax, ay, az, 0.01)
         end
     end
     @printf("%.9f\n", energy(bodies))
