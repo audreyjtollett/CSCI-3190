@@ -1,5 +1,5 @@
 module kdtreeparallel
 # KD-Tree Parallel
-# Clarissa
+# Clarissa & Audrey
 
 end

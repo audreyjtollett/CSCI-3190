@@ -1,6 +1,6 @@
 module kdtreeseq
 # KD-Tree Sequential, single struct for nodes
-# Audrey
+# Audrey & Clarissa
 
 # Constants
 const MAX_PARTS = 7
@@ -25,5 +25,7 @@ function allocate_node_vec(num_parts::Int64)
     num_nodes = 2*(num_parts / (MAX_PARTS-1) + 1)
     ret::Array{num_nodes, Float64}
 end
+
+function build_tree(indicies::Array{Int64}, start::Int64, end::Int64, system::Array{Body})
 
 end
