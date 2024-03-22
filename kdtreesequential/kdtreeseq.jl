@@ -26,6 +26,6 @@ function allocate_node_vec(num_parts::Int64)
     ret::Array{num_nodes, Float64}
 end
 
-function build_tree(indicies::Array{Int64}, start::Int64, end::Int64, system::Array{Body})
-
+function build_tree(indicies::Array{Int64}, start::Int64, ending::Int64, system::Array{Body}, cur_node::Int64, nodes::Array{KDTree})
+    np = ending - start
 end
