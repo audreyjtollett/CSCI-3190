@@ -1,4 +1,4 @@
-module nbodymut
+module nbodymutparallel
 using Printf
 # NBody Mutable
 # Audrey Tollett
@@ -34,24 +34,22 @@ end
 
 # kicks 
 function advance!(bodies, dt)
-    for i in 1:length(bodies)
+    Threads.@threads for i in 1:length(bodies)
         bodi = bodies[i]
-        for j in i+1:length(bodies)
-            bodj = bodies[j]
-            dx = bodi.x - bodj.x
-            dy = bodi.y - bodj.y
-            dz = bodi.z - bodj.z
+        for j in 1:length(bodies)
+            if i != j
+                bodj = bodies[j]
+                dx = bodi.x - bodj.x
+                dy = bodi.y - bodj.y
+                dz = bodi.z - bodj.z
 
-            dsq = dx^2 + dy^2 + dz^2
-            mag = dt / (dsq*sqrt(dsq))
+                dsq = dx^2 + dy^2 + dz^2
+                mag = dt / (dsq*sqrt(dsq))
 
-            bodi.vx -= dx * bodj.m * mag
-            bodi.vy -= dy * bodj.m * mag
-            bodi.vz -= dz * bodj.m * mag
-
-            bodj.vx += dx * bodi.m * mag
-            bodj.vy += dy * bodi.m * mag
-            bodj.vz += dz * bodi.m * mag
+                bodi.vx -= dx * bodj.m * mag
+                bodi.vy -= dy * bodj.m * mag
+                bodi.vz -= dz * bodj.m * mag
+            end
         end
     end
     for i=1:length(bodies)
@@ -89,14 +87,14 @@ function circular_orbits(n)
         vx = -v * sin(theta)
         vy = v * cos(theta)
         temp = Body(x, y, 0.0, vx, vy, 0, 1.0e-7)
-        push!(bods, temp) #is this pushing a reference to temp in which case is everything going to explode and how do i fix that
+        push!(bods, temp)
     end
     bods
     #print(bods)
 end
 
 # planets sun - jupiter - saturn - uranus - neptune 
-function nbody(n)
+function nbody(steps, numBodies)
     sun = Body(0,0,0,0,0,0, SOLAR_MASS)
 
     jupiter = Body( 4.84143144246472090e+0,                   # x
@@ -131,21 +129,21 @@ function nbody(n)
                    -9.51592254519715870e-5 * DAYS_PER_YEAR,
                     5.15138902046611451e-5 * SOLAR_MASS)
 
-    bods = [jupiter, saturn, uranus, neptune]
-    bods = circular_orbits(10000)
-    offsetMomentum!(sun, bods)
+    #bods = [jupiter, saturn, uranus, neptune]
+    bods = circular_orbits(numBodies)
+    #offsetMomentum!(sun, bods)
     # pushfirst!(bods, sun)
 
     # do advancing stuff
     @printf("%.9f\n", energy(bods))
-    for i = 1:n
+    for i = 1:steps
         advance!(bods, 0.01)
     end
     @printf("%.9f\n", energy(bods))
 end
 
 if !isinteractive()
-    nbody(parse(Int, ARGS[1]))
+    nbody(parse(Int, ARGS[1]), parse(Int, ARGS[2]))
 end
 
 
