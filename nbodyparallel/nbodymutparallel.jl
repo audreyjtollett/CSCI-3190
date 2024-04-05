@@ -19,6 +19,16 @@ mutable struct Body
     m::Float64
 end
 
+function getDim(bod, dim)
+    if dim == 0
+        bod.x
+    elseif dim == 1
+        bod.y 
+    else
+        bod.x
+    end
+end
+
 # account for momentum 
 function offsetMomentum!(s, bodies)
     px = py = pz = 0.0
