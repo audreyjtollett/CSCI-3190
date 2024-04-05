@@ -1,5 +1,5 @@
 module kdtreeseq
-using nbodymutparallel
+include("nbodymutparallel.jl")
 # KD-Tree Sequential, single struct for nodes
 # Audrey & Clarissa
 
