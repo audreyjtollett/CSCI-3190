@@ -1,5 +1,4 @@
 module kdtreeseq
-include("nbodymutparallel.jl")
 # KD-Tree Sequential, single struct for nodes
 # Audrey & Clarissa
 
@@ -7,6 +6,11 @@ include("nbodymutparallel.jl")
 const MAX_PARTS = 7
 const THETA = 0.3
 
+mutable struct Body
+    p::Array{Float64}
+    v::Array{Float64}
+    m::Float64
+end
 
 mutable struct KDTree #I made it mutable for now, basing off java code and i dont see how it can be immut...
     # for leaves
@@ -39,33 +43,37 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
         end
         cur_node
     else
-        min = [1e100, 1e100, 1e100]
-        max = [-1e100, -1e100, -1e100]
+        minp = [1e100, 1e100, 1e100]
+        maxp = [-1e100, -1e100, -1e100]
         m = 0.0
         cm = [0.0, 0.0, 0.0]
         for i in start:ending
             m += system[indices[i]].m
-            cm[0] += system[indices[i]].m * system[indices[i]].x
-            cm[1] += system[indices[i]].m * system[indices[i]].y
-            cm[2] += system[indices[i]].m * system[indices[i]].z
-            min[0] = min(min[0], system[indices[i]].x)
-            min[1] = min(min[1], system[indices[i]].y)
-            min[2] = min(min[2], system[indices[i]].z)
-            max[0] = max(min[0], system[indices[i]].x)
-            max[1] = max(min[1], system[indices[i]].y)
-            max[2] = max(min[2], system[indices[i]].z)
+            cm += system[indices[i]].m * system[indices[i]].p
+            # cm[0] += system[indices[i]].m * system[indices[i]].p[0]
+            # cm[1] += system[indices[i]].m * system[indices[i]].p[1]
+            # cm[2] += system[indices[i]].m * system[indices[i]].p[2]
+            minp = min.(minp, system[indices[i]].p)
+            # minp[0] = min(minp[0], system[indices[i]].x)
+            # minp[1] = min(minp[1], system[indices[i]].y)
+            # minp[2] = min(minp[2], system[indices[i]].z)
+            maxp = max.(maxp, system[indices[i]].p)
+            # maxp[0] = max(minp[0], system[indices[i]].x)
+            # maxp[1] = max(minp[1], system[indices[i]].y)
+            # maxp[2] = max(minp[2], system[indices[i]].z)
         end
-        cm[0] /= m
-        cm[1] /= m
-        cm[2] /= m 
+        cm /= m
+        # cm[0] /= m
+        # cm[1] /= m
+        # cm[2] /= m 
         split_dim = 0
-        if max[1] - min[1] > max[split_dim] - min[split_dim]
+        if maxp[1] - minp[1] > maxp[split_dim] - minp[split_dim]
             split_dim = 1
         end
-        if max[2] - min[2] > max[split_dim] - min[split_dim]
+        if maxp[2] - minp[2] > maxp[split_dim] - minp[split_dim]
             split_dim = 2
         end
-        size = max[split_dim] - min[split_dim]
+        size = maxp[split_dim] - minp[split_dim]
         # partition time
         mid = (start + ending) / 2
         s = start
@@ -106,16 +114,8 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
         while cur_node >= length(nodes)
             push!(nodes, KDTree()) #idk if this works and idk why im doing this
         end 
-        nodes[cur_node].num_parts = 0
-        nodes[cur_node].split_dim = split_dim
-        nodes[cur_node].split_val =split_val
-        nodes[cur_node].m = m
-        nodes[cur_node].cm[0] = cm[0]
-        nodes[cur_node].cm[1] = cm[1]
-        nodes[cur_node].cm[2] = cm[2]
-        nodes[cur_node].size = size
-        nodes[cur_node].left = cur_node + 1
-        nodes[cur_node].right = left + 1
+
+        nodes[cur_node] = KDTree(0, split_dim, split_val, m, [0, 1, 2], size, cur_node + 1, left + 1)
 
         right
     end
