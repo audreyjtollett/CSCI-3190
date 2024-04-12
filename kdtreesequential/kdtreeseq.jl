@@ -1,4 +1,4 @@
-module kdtreeseq
+module juliasim
 # KD-Tree Sequential, single struct for nodes
 # Audrey & Clarissa
 
@@ -7,41 +7,39 @@ const MAX_PARTS = 7
 const THETA = 0.3
 
 mutable struct Body
-    p::Array{Float64}
-    v::Array{Float64}
+    p::Array{Float64} #p[0] = x, p[1] = y...
+    v::Array{Float64} #v[0] = vx, v[1] = vy...
     m::Float64
 end
 
-mutable struct KDTree #I made it mutable for now, basing off java code and i dont see how it can be immut...
+
+abstract type KDTree end
+
+struct KDLeaf <: KDTree
     # for leaves
     num_parts::Int64
-    particles::Array{MAX_PARTS, Int64}
+    particles::Array{Int64}
+end
+
+struct KDInternal <: KDTree
     # for internal nodes
     split_dim::Int64
     split_val::Float64
     m::Float64
     cm::Array{Float64}
     size::Float64
-    left::Int64
-    right::Int64
+    left::KDTree
+    right::KDTree
 end
 
-function allocate_node_vec(num_parts::Int64)
-    num_nodes = 2*(num_parts / (MAX_PARTS-1) + 1)
-    ret::Array{num_nodes, Float64}
-end
-
-function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::Array{Body}, cur_node::Int64, nodes::Array{KDTree})
+function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::Array{Body})::KDTree
     np = ending - start
     if np <= MAX_PARTS
-        while cur_node >= length(nodes)
-            push!(nodes, KDTree()) #idk if this works and idk why im doing this
-        end
-        nodes[cur_node].num_parts = np
+        node = KDLeaf(np, zeros(Int64, MAX_PARTS))
         for i in 1:np
-            nodes[cur_node].particles[i] = indices[start + i]
+            node.particles[i] = indices[start + i]
         end
-        cur_node
+        node
     else
         minp = [1e100, 1e100, 1e100]
         maxp = [-1e100, -1e100, -1e100]
@@ -66,16 +64,16 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
         # cm[0] /= m
         # cm[1] /= m
         # cm[2] /= m 
-        split_dim = 0
-        if maxp[1] - minp[1] > maxp[split_dim] - minp[split_dim]
-            split_dim = 1
-        end
+        split_dim = 1
         if maxp[2] - minp[2] > maxp[split_dim] - minp[split_dim]
             split_dim = 2
         end
+        if maxp[3] - minp[3] > maxp[split_dim] - minp[split_dim]
+            split_dim = 3
+        end
         size = maxp[split_dim] - minp[split_dim]
         # partition time
-        mid = (start + ending) / 2
+        mid::Int64 = div((start + ending), 2) # int division mid bs
         s = start
         e = ending
         while s + 1 < e
@@ -85,8 +83,8 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
             indices[pivot] = swapTmp
             low = s+1
             high = e-1
-            while low<= high #either change how struct body stores xyz or it has to be this way
-                if getDim(system[indices[low]], split_dim) < getDim(system[indices[s]], split_dim)
+            while low <= high
+                if system[indices[low]].p[split_dim] < system[indices[s]].p[split_dim]
                     low += 1
                 else
                     swapTmp2 = indices[low]
@@ -106,58 +104,46 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
                 s = e
             end
         end
-
+        split_val = system[indices[mid]].p[split_dim]
         #recursion on kids
-        left = build_tree(indices, start, mid, system, cur_node+1, nodes)
-        right = build_tree(indices, mid, ending, system, cur_node+1, nodes)
-
-        while cur_node >= length(nodes)
-            push!(nodes, KDTree()) #idk if this works and idk why im doing this
-        end 
-
-        nodes[cur_node] = KDTree(0, split_dim, split_val, m, [0, 1, 2], size, cur_node + 1, left + 1)
-
-        right
+        left = build_tree(indices, start, mid, system)
+        right = build_tree(indices, mid, ending, system)
+        
+        node = KDInternal(split_dim, split_val, m, [0, 1, 2], size, left, right)
+        
+        node
     end
+end
 
     function calc_pp_accel(system, i, j, acc)
-        dx = system.p[i, 1] - system.p[j, 1]
-        dy = system.p[i, 2] - system.p[j, 2]
-        dz = system.p[i, 3] - system.p[j, 3]
-        dist = sqrt(dx^2 + dy^2 + dz^2)
-        magi = -system.m[j] / (dist^3) 
-        acc[1] += dx * magi
-        acc[2] += dy * magi
-        acc[3] += dz * magi
+        d = system[i].p - system[j].p
+        dist = sqrt(sum(d.^2))
+        magi = -system[j].m / (dist^3) 
+        acc += d * magi
     end
 
-    function accel_recur(cur_node, p, system, nodes, acc)
-        if nodes[cur_node].num_parts > 0
-            for i in 1:nodes[cur_node].num_parts
-                if nodes[cur_node].particles[i] != p
-                    calc_pp_accel(system, p, nodes[cur_node].particles[i], acc)
-                end
-            end
-        else
-            dx = system.p[p, 1] - nodes[cur_node].cm[1]
-            dy = system.p[p, 2] - nodes[cur_node].cm[2]
-            dz = system.p[p, 3] - nodes[cur_node].cm[3]
-            dist_sqr = dx^2 + dy^2 + dz^2
-            if nodes[cur_node].size * nodes[cur_node].size < THETA^2 * dist_sqr
-                dist = sqrt(dist_sqr)
-                magi = -nodes[cur_node].m / (dist_sqr * dist)
-                acc[1] += dx * magi
-                acc[2] += dy * magi
-                acc[3] += dz * magi
-            else
-                accel_recur(nodes[cur_node].left, p, system, nodes, acc)
-                accel_recur(nodes[cur_node].right, p, system, nodes, acc)
+    function accel_recur(cur_node::KDLeaf, p::Int64, system::Vector{Body}, acc)
+        for i in 1:cur_node.num_parts
+            if cur_node.particles[i] != p
+                calc_pp_accel(system, p, cur_node.particles[i], acc)
             end
         end
     end
+    function accel_recur(cur_node::KDInternal, p::Int64, system::Vector{Body}, acc)
+        d = system[p].p - cur_node.cm
+        dist_sqr = sum(d.^2)
+        if cur_node.size * cur_node.size < THETA^2 * dist_sqr
+            dist = sqrt(dist_sqr)
+            magi = -nodes[cur_node].m / (dist_sqr * dist)
+            acc += d * magi
+        else
+            accel_recur(cur_node.left, p, system, acc)
+            accel_recur(cur_node.right, p, system, acc)
+        end
+    end
 
-    function calc_accel(p, system, nodes, acc)
-        accel_recur(1, p, system, nodes, acc)
+    function calc_accel(p::Int64, tree:: KDTree, system::Vector{Body}, acc)
+        accel_recur(tree, p, system, acc)
     end
 
     function print_tree(step, tree, system)
@@ -182,28 +168,23 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
         end
     end
 
-    function simple_sim(system, dt, steps)
-        acc = zeros(system.numBodies(), 3)
-        tree = allocate_node_vec(system.numBodies())
-        indices = collect(1:system.numBodies())
+    function simple_sim(system::Vector{Body}, dt::Float64, steps::Int64)
+        nb::Int64 = length(system)
+        acc = zeros(nb, 3)
+        indices = collect(1:nb)
     
         for step in 1:steps
-            build_tree(indices, 1, system.numBodies(), system, 1, tree)
-            for i in 1:system.numBodies()
-                calc_accel(i, system, tree, acc[i, :])
+            tree = build_tree(indices, 1, nb, system)
+            for i in 1:nb
+                calc_accel(i, tree, system, acc[i, :])
             end
-            for i in 1:system.numBodies()
-                system.incV(i, 1, dt * acc[i, 1])
-                system.incV(i, 2, dt * acc[i, 2])
-                system.incV(i, 3, dt * acc[i, 3])
-                system.incP(i, 1, dt * system.v[i, 1])
-                system.incP(i, 2, dt * system.v[i, 2])
-                system.incP(i, 3, dt * system.v[i, 3])
+            for i in 1:nb
+                system[i].v += dt * acc[i,:]
+                system[i].p += dt * system[i].v
                 acc[i, :] .= 0.0
             end
         end
     end
 
-end
 
 end
