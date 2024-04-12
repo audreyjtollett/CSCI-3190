@@ -119,6 +119,91 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
 
         right
     end
+
+    function calc_pp_accel(system, i, j, acc)
+        dx = system.p[i, 1] - system.p[j, 1]
+        dy = system.p[i, 2] - system.p[j, 2]
+        dz = system.p[i, 3] - system.p[j, 3]
+        dist = sqrt(dx^2 + dy^2 + dz^2)
+        magi = -system.m[j] / (dist^3) 
+        acc[1] += dx * magi
+        acc[2] += dy * magi
+        acc[3] += dz * magi
+    end
+
+    function accel_recur(cur_node, p, system, nodes, acc)
+        if nodes[cur_node].num_parts > 0
+            for i in 1:nodes[cur_node].num_parts
+                if nodes[cur_node].particles[i] != p
+                    calc_pp_accel(system, p, nodes[cur_node].particles[i], acc)
+                end
+            end
+        else
+            dx = system.p[p, 1] - nodes[cur_node].cm[1]
+            dy = system.p[p, 2] - nodes[cur_node].cm[2]
+            dz = system.p[p, 3] - nodes[cur_node].cm[3]
+            dist_sqr = dx^2 + dy^2 + dz^2
+            if nodes[cur_node].size * nodes[cur_node].size < THETA^2 * dist_sqr
+                dist = sqrt(dist_sqr)
+                magi = -nodes[cur_node].m / (dist_sqr * dist)
+                acc[1] += dx * magi
+                acc[2] += dy * magi
+                acc[3] += dz * magi
+            else
+                accel_recur(nodes[cur_node].left, p, system, nodes, acc)
+                accel_recur(nodes[cur_node].right, p, system, nodes, acc)
+            end
+        end
+    end
+
+    function calc_accel(p, system, nodes, acc)
+        accel_recur(1, p, system, nodes, acc)
+    end
+
+    function print_tree(step, tree, system)
+        fname = "tree$step.txt"
+        try
+            open(fname, "w") do file
+                println(file, length(tree))
+                for n in tree
+                    if n.num_parts > 0
+                        println(file, "L $(n.num_parts)")
+                        for p in n.particles
+                            println(file, "$(system.p[p, 1]) $(system.p[p, 2]) $(system.p[p, 3])")
+                        end
+                    else
+                        println(file, "I $(n.split_dim) $(n.split_val) $(n.left) $(n.right)")
+                    end
+                end
+            end
+        catch ex
+            println("Exception writing to file.\n")
+            showerror(ex)
+        end
+    end
+
+    function simple_sim(system, dt, steps)
+        acc = zeros(system.numBodies(), 3)
+        tree = allocate_node_vec(system.numBodies())
+        indices = collect(1:system.numBodies())
+    
+        for step in 1:steps
+            build_tree(indices, 1, system.numBodies(), system, 1, tree)
+            for i in 1:system.numBodies()
+                calc_accel(i, system, tree, acc[i, :])
+            end
+            for i in 1:system.numBodies()
+                system.incV(i, 1, dt * acc[i, 1])
+                system.incV(i, 2, dt * acc[i, 2])
+                system.incV(i, 3, dt * acc[i, 3])
+                system.incP(i, 1, dt * system.v[i, 1])
+                system.incP(i, 2, dt * system.v[i, 2])
+                system.incP(i, 3, dt * system.v[i, 3])
+                acc[i, :] .= 0.0
+            end
+        end
+    end
+
 end
 
 end
