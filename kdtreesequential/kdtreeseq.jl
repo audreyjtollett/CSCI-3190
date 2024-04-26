@@ -146,7 +146,7 @@ end
         accel_recur(tree, p, system, acc)
     end
 
-    function print_tree(step, tree, system)
+    function print_tree(step::Int64, tree::KDTree, system::Array{Body})
         fname = "tree$step.txt"
         try
             open(fname, "w") do file
@@ -164,7 +164,7 @@ end
             end
         catch ex
             println("Exception writing to file.\n")
-            showerror(ex)
+            #showerror(ex)
         end
     end
 
@@ -183,6 +183,7 @@ end
                 system[i].p += dt * system[i].v
                 acc[i, :] .= 0.0
             end
+            print_tree(step, tree, system)
         end
     end
 
