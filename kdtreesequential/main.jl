@@ -23,7 +23,8 @@ function circular_orbits(n::Int64)::Vector{juliasim.Body}
     bods
     #print(bods)
 end
-
+# to run:
+# julia main.jl #particles #steps
 if !isinteractive()
     n = parse(Int64, ARGS[1])
     steps = parse(Int64, ARGS[2])

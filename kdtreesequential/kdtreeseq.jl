@@ -48,22 +48,10 @@ function build_tree(indices::Array{Int64}, start::Int64, ending::Int64, system::
         for i in start:ending
             m += system[indices[i]].m
             cm += system[indices[i]].m * system[indices[i]].p
-            # cm[0] += system[indices[i]].m * system[indices[i]].p[0]
-            # cm[1] += system[indices[i]].m * system[indices[i]].p[1]
-            # cm[2] += system[indices[i]].m * system[indices[i]].p[2]
             minp = min.(minp, system[indices[i]].p)
-            # minp[0] = min(minp[0], system[indices[i]].x)
-            # minp[1] = min(minp[1], system[indices[i]].y)
-            # minp[2] = min(minp[2], system[indices[i]].z)
             maxp = max.(maxp, system[indices[i]].p)
-            # maxp[0] = max(minp[0], system[indices[i]].x)
-            # maxp[1] = max(minp[1], system[indices[i]].y)
-            # maxp[2] = max(minp[2], system[indices[i]].z)
         end
         cm /= m
-        # cm[0] /= m
-        # cm[1] /= m
-        # cm[2] /= m 
         split_dim = 1
         if maxp[2] - minp[2] > maxp[split_dim] - minp[split_dim]
             split_dim = 2
@@ -134,7 +122,7 @@ end
         dist_sqr = sum(d.^2)
         if cur_node.size * cur_node.size < THETA^2 * dist_sqr
             dist = sqrt(dist_sqr)
-            magi = -nodes[cur_node].m / (dist_sqr * dist)
+            magi = -cur_node.m / (dist_sqr * dist)
             acc += d * magi
         else
             accel_recur(cur_node.left, p, system, acc)
@@ -157,7 +145,7 @@ end
         end
 
         function print_node(n::KDInternal, file::IO)
-            println(file, "I $(n.split_dim) $(n.split_val) 0 1")
+            println(file, "I $(n.split_dim) $(n.split_val)")
             print_node(n.left, file)
             print_node(n.right, file)
         end
@@ -165,11 +153,9 @@ end
         fname = "tree$step.txt"
         try
             open(fname, "w") do file
-                println(file, 0)
                 print_node(tree, file)
             end
         catch ex
-            println("Exception writing to file.\n")
             println(ex)
         end
     end
@@ -190,7 +176,7 @@ end
                 system[i].p += dt * system[i].v
                 acc[i, :] .= 0.0
             end
-            print_tree(step, tree, system)
+            # print_tree(step, tree, system)
         end
     end
 
