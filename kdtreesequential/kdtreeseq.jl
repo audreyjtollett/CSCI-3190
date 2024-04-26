@@ -147,26 +147,33 @@ end
     end
 
     function print_tree(step::Int64, tree::KDTree, system::Array{Body})
+        function print_node(n::KDLeaf, file::IO)
+            println(file, "L $(n.num_parts)")
+                        for i in 1:n.num_parts
+                            p = n.particles[i]
+                            println(p)
+                            println(file, "$(system[p].p[1]) $(system[p].p[2]) $(system[p].p[3])")
+                        end
+        end
+
+        function print_node(n::KDInternal, file::IO)
+            println(file, "I $(n.split_dim) $(n.split_val) 0 1")
+            print_node(n.left, file)
+            print_node(n.right, file)
+        end
+
         fname = "tree$step.txt"
         try
             open(fname, "w") do file
-                println(file, length(tree))
-                for n in tree
-                    if n.num_parts > 0
-                        println(file, "L $(n.num_parts)")
-                        for p in n.particles
-                            println(file, "$(system.p[p, 1]) $(system.p[p, 2]) $(system.p[p, 3])")
-                        end
-                    else
-                        println(file, "I $(n.split_dim) $(n.split_val) $(n.left) $(n.right)")
-                    end
-                end
+                println(file, 0)
+                print_node(tree, file)
             end
         catch ex
             println("Exception writing to file.\n")
-            #showerror(ex)
+            println(ex)
         end
     end
+
 
     function simple_sim(system::Vector{Body}, dt::Float64, steps::Int64)
         nb::Int64 = length(system)
